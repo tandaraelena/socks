@@ -1,24 +1,21 @@
 const express = require('express');
-const cors = require('cors')
 
 const app = express();
+
+const server = app.listen(3000, () => {
+  console.log("Server up and running")
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use((_,res,next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  next();
-});
 
 app.get("/", (_, res) => {
   return res.status(200).send("Success")
 })
 
-const sendEmail = async (emailData) => {
+const sendEmail = async (_) => {
   // Generate a random number between 0 and 1
   const randomNumber = Math.random();
-
-  // console.log('emailData in send email', emailData)
 
   // Simulating an asynchronous operation, e.g., sending an email
   await new Promise(resolve => setTimeout(resolve, 1000));
@@ -27,22 +24,9 @@ const sendEmail = async (emailData) => {
   return randomNumber < 0.95;
 }
 
+// the API request that triggers the email
 app.post('/emailEvents', async (req,res) => {
   const {eventName, userEmail} = req.body; 
-
-  // few examples of events:
-  // {
-  //   eventName: "websiteSignup"
-  //   userEmail: "pete@healthtech1.uk"
-  // }
-  // {
-  //   eventName: "socksPurchased"
-  //   userEmail: "pete@healthtech1.uk"
-  // }
-  // {
-  //   eventName: "emailVerified"
-  //   userEmail: "pete@healthtech1.uk"
-  // }
 
   // I don't want to proceed without these mandatory values
   if (!eventName) {
@@ -56,6 +40,7 @@ app.post('/emailEvents', async (req,res) => {
     })
   };
 
+  // data structure of the flows 
   const flows = {
     "websiteSignup": {
       actions: [
@@ -85,10 +70,14 @@ app.post('/emailEvents', async (req,res) => {
     }
   }
 
+  // again, I don't want to proceed without a valid flow trigger
   if(!Object.hasOwn(flows,eventName)) {
-    return res.send("A flow for the provided eventName doesn't exist")
+    return res.status(400).json({
+      error: "A flow for the provided eventName doesn't exist"
+    })
   }
 
+  // now I have all the information to fire all the emails
   const currentFlow = flows[eventName];
   return await Promise.all(currentFlow.actions).then((values) => {
     console.log("Return values of the actions", values)
@@ -96,10 +85,7 @@ app.post('/emailEvents', async (req,res) => {
   });
 });
 
-app.listen(3000, () => {
-  console.log("Server up and running")
-});
-
-process.on('exit', (code) => {
-  console.log("process exit event with code: ", code)
-})
+module.exports = {
+  server,
+  app
+};
